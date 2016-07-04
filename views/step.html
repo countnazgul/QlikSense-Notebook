@@ -1,0 +1,59 @@
+{% for step in steps %}
+
+<div class="panel panel-default qsMainPanel" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">
+    <div class="panel-heading">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-lg-7">
+                    <button data-original-title="Reload current " data-placement="bottom " data-toggle="tooltip " type="button " class="btn btn-default qsreload qstooltip" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">
+                        <span class="glyphicon glyphicon-refresh "></span>
+                    </button>
+                    <button data-original-title="Reload all after this " data-placement="bottom " data-toggle="tooltip " type="button " class="btn btn-default qsreloadall qstooltip" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">
+                        <span class="glyphicon glyphicon-forward "></span>
+                    </button>
+                    <button data-original-title="Local save" data-placement="bottom " data-toggle="tooltip " type="button " class="btn btn-default qssave qstooltip " data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">
+                        <span class="glyphicon glyphicon-floppy-save"></span>
+                    </button>
+                    <button data-original-title="Engine save" data-placement="bottom" data-toggle="tooltip" type="button" class="btn btn-default qssaveengine qstooltip" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">
+                        <span class="glyphicon glyphicon-transfer"></span>
+                    </button>
+                    <button data-original-title="Validate script" data-placement="bottom" data-toggle="tooltip" type="button" class="btn btn-default qsvalidate qstooltip" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">
+                        <span class="glyphicon glyphicon-ok "></span>
+                    </button>                    
+                    <button data-original-title="Delete step" data-placement="bottom" data-toggle="tooltip" type="button" class="btn btn-default qsremove qstooltip" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">
+                        <span class="glyphicon glyphicon-trash "></span>
+                    </button>
+                    <a data-toggle="collapse" data-target="#{{ step.name }}" class="collapsed" href="#{{ step.name }}">
+                        <span class="qsapp" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}"  >{{ step.name }}</span>
+                    </a>
+                </div>
+                <div class="col-lg-5" style="text-align: right">
+                    <div>
+                        <span class="qsmsg" style="display: none" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}"> Status1 </span>
+                        <span class="qsstatus" style="display: none" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}"> Status </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="{{ step.name }}" class="panel-collapse collapse">
+        <div class="panel-body">
+            <ul class="nav nav-tabs">
+              <li class="active"><a data-toggle="tab" href="#script_{{ step.id }}">Script</a></li>
+              <li><a data-toggle="tab" href="#reloadresult_{{ step.id }}">Reload result</a></li>
+            </ul>
+            
+            <div class="tab-content">
+              <div id="script_{{ step.id }}" class="tab-pane fade in active">
+                <textarea id="scripttext_{{ step.id }}" class="qsscript" rows="5" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">{{ step.script }}</textarea>
+              </div>
+              <div id="reloadresult_{{ step.id }}" class="tab-pane fade">
+                <!-- <textarea class="form-control qsreloadresult" rows="5" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">1111</textarea> -->
+                <div class="qsreloadresult" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}"> {{ step.reloadResult }} </div>
+              </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endfor %}

@@ -1,0 +1,20 @@
+{
+    "name": "QlikSense-Notebook",
+    "version": "0.0.1",
+    "description": "Jupyter like notebook for Qlik Sense",
+    "author": "Stefan Stoichev <stefan.stoichev@gmail.com>",
+    "license": "MIT",
+    "dependencies": {
+        "async": "1.5.x",
+        "express": "4.13.x",
+        "body-parser": "1.15.x",
+        "morgan": "1.7.x",
+        "qsocks": "2.1.x",
+        "qrs": "2.0.x",
+        "swig": "1.4.x",
+        "consolidate": "0.14.x",
+        "request": "2.x.x",
+        "node-uuid": "1.4.x",
+        "mongoose" : "4.5.x"
+    }
+}
