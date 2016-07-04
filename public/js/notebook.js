@@ -93,7 +93,7 @@ $(document).ready(function() {
     //var sessionApps = [];
     // $('#createNewApp').on('click', function () {
     //     createApp();        
-    // })
+    // }) 
 
     $('#deleteAll').on('click', function() {
         deleteAllApps();
