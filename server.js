@@ -40,7 +40,12 @@ mongoose.connect(config.main.db, function(err) {
 
 var stepsSchema = new Schema({
   name: String,
-  script: String
+  script: String,
+  createdAt: Date,
+  lastLocalSaveAt: Date,
+  lastEngineSaveAt: Date,
+  lastReloadAt: Date,
+  lastReloadDuration: String
 });
 
 var notebookModel = mongoose.model('notebookModel', {
@@ -271,10 +276,8 @@ io.on('connection', function(client) {
 
   client.on('reloadApp', function(stepId, notebookId) {
     reloadApp( notebookId, stepId, function(result) {
-      
-    })
+    });
   });
-  
   
   function reloadApp(notebookId, stepId, callback) {
     var count = 0;
@@ -334,8 +337,6 @@ io.on('connection', function(client) {
     });
   });
 
-
-
   client.on('getSteps', function(notebookId, callback) {
     notebookModel.findOne({
       _id: notebookId
@@ -345,18 +346,21 @@ io.on('connection', function(client) {
         steps: notebook.steps
       });
 
-      callback(template);
+      callback(template, notebook.steps);
     });
   });
 
-  client.on('addStep', function(notebookId, callback) {
+  client.on('addStep', function(notebookId, lastStep, callback) {
+    var at = Date.now();
     var appName = appPrefix + uuid.v4();
     notebookModel.findOne({
       _id: notebookId
     }, function(err, notebook) {
       var step = notebook['steps'].create({
         name: appName,
-        script: '// new scrpt'
+        script: '[Binary ' + lastStep + '];',
+        createdAt: at,
+        lastLocalSaveAt: at
       });
 
 
@@ -387,18 +391,26 @@ io.on('connection', function(client) {
     });
   });
 
-
   client.on('saveStepLocal', function(stepId, notebookId, script, callback) {
 
     notebookModel.findById(notebookId, function(err, doc) {
       var step = doc.steps.id(stepId);
       step.script = script;
+      step.lastLocalSaveAt = new Date();
+      
       doc.save(function(err, d) {
-        callback('ok');
+        callback(step);
       });
     });
 
   });
+ 
+  client.on('validateScript', function(script, callback) {
+      callback('blaaaa');
+  }); 
+  
+  
+  
 
 
 });

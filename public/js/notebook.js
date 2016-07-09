@@ -110,6 +110,7 @@ $(document).ready(function() {
         script = $(script)[0].CodeMirror;
         script = script.getValue();
         saveStepLocal($(this).data('stepid'), $(this).data('notebookid'), script);
+        
     });
 
     $(document).on("click", ".qsreload", function() {
@@ -121,21 +122,25 @@ $(document).ready(function() {
     });
 
     $(document).on("click", ".qsapp", function() {
-        //console.log('scripttext_' + $(this).data('stepid'))
-
         editor('scripttext_' + $(this).data('stepid'));
-
     });
-
+    
+    $(document).on("click", ".qsvalidate", function() {
+        //$(this).data('stepid'));
+        validateScript( $(this).data('stepid') ) ;
+    });    
+    
     $('#addStep').on('click', function() {
         addStep();
     });
 
-
+    var allSteps;
     function getSteps() {
-        socket.emit('getSteps', notebookId, function(steps) {
+        socket.emit('getSteps', notebookId, function(stepshtml, steps) {
+            allSteps = steps;
+            console.log(steps)
             $('#mainPanel').empty();
-            $('#mainPanel').append(steps);
+            $('#mainPanel').append(stepshtml);
             var qsMainPanel = $('.qsMainPanel');
             for (var i = 0; i < qsMainPanel.length; i++) {
                 socket.emit('subscribe', $(qsMainPanel[i]).data('stepid'))
@@ -152,7 +157,7 @@ $(document).ready(function() {
     }
 
     function addStep() {
-        socket.emit('addStep', notebookId, function(step) {
+        socket.emit('addStep', notebookId, allSteps[allSteps.length-1].name, function(step) {
             //console.log(step)
             $('#mainPanel').append(step);
             socket.emit('subscribe', $(step).data('stepid'));
@@ -177,21 +182,35 @@ $(document).ready(function() {
 
     function saveStepLocal(stepId, notebookId, script) {
         var progress = $('.qsmsg[data-stepid="' + stepId + '"]');
+        buttonsToggle( stepId, true );
         $(progress).text('Saving ...');
         $(progress).css('display', 'inline-block');
         socket.emit('saveStepLocal', stepId, notebookId, script, function(result) {
             $(progress).text('Saved local');
             $(progress).fadeOut("slow");
+            buttonsToggle( stepId, false );
         });
+        
+        
     }
 
     function reloadApp(stepId, notebookId) {
+        $('.qsreloadresult[data-stepid="' + data.stepId + '"]').text('');
         socket.emit('reloadApp', stepId, notebookId);
     }
 
     function reloadFromApp(stepId, notebookId) {
-
         socket.emit('reloadFromApp', stepId, notebookId);
+    }
+    
+    function validateScript(stepId) {
+        var script = $("#scripttext_" + stepId).siblings();
+        script = $(script)[0].CodeMirror;
+        script = script.getValue();        
+        
+        socket.emit('validateScript', script, function(validationResult) {
+            console.log(validationResult);
+        });
     }
 
     function editor(id) {
@@ -200,10 +219,9 @@ $(document).ready(function() {
             
         } else {
             var edit = CodeMirror.fromTextArea(document.getElementById(id), {
-                mode: "text",
+                mode: "text/x-mysql",
                 lineNumbers: true,
-                tabMode: "indent",
-                class: 'tttttt'
+                tabMode: "indent"
             });
 
             setTimeout(function() {
@@ -211,10 +229,19 @@ $(document).ready(function() {
             }, 1);
 
             $('#' + id).addClass('cm');
+            
+            //edit.setOption('mode', 'sql');
 
         }
     }
 
+    function buttonsToggle(stepId, disable) {
+        var buttons = $('.qstooltip[data-stepid="' + stepId + '"]') ;
+               
+        for( var i = 0; i < buttons.length; i++ ) {
+            $(buttons[i]).prop('disabled', disable);
+        }        
+    }
 
 
     /*function getSteps() {

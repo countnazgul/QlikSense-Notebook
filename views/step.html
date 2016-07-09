@@ -41,6 +41,8 @@
             <ul class="nav nav-tabs">
               <li class="active"><a data-toggle="tab" href="#script_{{ step.id }}">Script</a></li>
               <li><a data-toggle="tab" href="#reloadresult_{{ step.id }}">Reload result</a></li>
+              <li><a data-toggle="tab" href="#visuals_{{ step.id }}">Visualisations</a></li>
+              <li><a data-toggle="tab" href="#info_{{ step.id }}">Info</a></li>
             </ul>
             
             <div class="tab-content">
@@ -51,6 +53,28 @@
                 <!-- <textarea class="form-control qsreloadresult" rows="5" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">1111</textarea> -->
                 <div class="qsreloadresult" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}"> {{ step.reloadResult }} </div>
               </div>
+              <div id="visuals_{{ step.id }}" class="tab-pane fade">
+                where the visualisations to be
+              </div>
+              <div id="info_{{ step.id }}" class="tab-pane fade">
+                Created at: 
+               {% if step.createdAt %}
+                    {{ step.createdAt|date('Y-m-d h:m:s') }}
+                {% endif %}                
+                <br>Last local save: 
+                {% if step.lastLocalSaveAt %}
+                    {{ step.lastLocalSaveAt|date('Y-m-d h:m:s') }}
+                {% endif %}
+                <br>Last engine save: 
+                {% if step.lastEngineSaveAt %}
+                    {{ step.lastEngineSaveAt|date('Y-m-d h:m:s') }}
+                {% endif %}                
+                <br>Last reload: 
+                {% if step.lastReloadAt %}
+                    {{ step.lastReloadAt|date('Y-m-d h:m:s') }}
+                {% endif %}   
+                <br>Last reload duration: {{ step.lastReloadDuration }}
+              </div>              
             </div>
         </div>
     </div>
