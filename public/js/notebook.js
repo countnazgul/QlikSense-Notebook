@@ -14,55 +14,7 @@ $(document).ready(function() {
     }
 
     const appPrefix = 'zzz_Notebook_';
-    // 
-    var panelTemplate = `
-    <div class="panel panel-default">
-      <div class="panel-heading">
-      <div class="container-fluid">
-      
-      <div class="row"">
-       <div class="col-lg-7">
-        <button data-original-title="Reload current" data-placement="bottom" data-toggle="tooltip" type="button" class="btn btn-default qsreload qstooltip">
-          <span class="glyphicon glyphicon-refresh"></span>
-        </button>      
-        <button data-original-title="Reload all after this" data-placement="bottom" data-toggle="tooltip" type="button" class="btn btn-default qsreloadall qstooltip">
-          <span class="glyphicon glyphicon-forward"></span>
-        </button>              
-        <button data-original-title="Local save" data-placement="bottom" data-toggle="tooltip" type="button" class="btn btn-default qssave qstooltip" name="<%stepId%>">
-          <span class="glyphicon glyphicon-floppy-save"></span>
-        </button>                      
-        <button data-original-title="Engine save" data-placement="bottom" data-toggle="tooltip" type="button" class="btn btn-default qssaveengine qstooltip" name="<%stepId%>">
-          <span class="glyphicon glyphicon-transfer"></span>
-        <button data-original-title="Delete step" data-placement="bottom" data-toggle="tooltip" type="button" class="btn btn-default qsremove qstooltip" name="<%stepId%>">
-          <span class="glyphicon glyphicon-remove "></span>
-        </button>
-        <a data-toggle="collapse" data-target="#<%name%>" class="collapsed" href="#<%name%>">
-            <span class="qsapp" ><%name%></span>
-        </a>
-        
-        </div>
-
-         <div class="col-lg-5" style="text-align: right">
-            <div>
-                <span class="qsmsg" style="display: none"> Status1 </span>
-                <span class="qsstatus" style="display: none"> Status </span>
-            </div>
-        </div> 
-        </div>
-       </div> 
-
-      </div>    
-      <div id="<%name%>" class="panel-collapse collapse">
-      <div class="panel-body">
-        Script <br>
-        <textarea class="form-control qsscript" rows="5"><%script%></textarea> <br>
-        Reload result <br>
-        <textarea class="form-control qsscript" rows="5"></textarea>
-      </div>   
-      </div>
-      <!-- <div class="panel-footer">Panel Footer</div> -->
-    </div>
-    `;
+ 
 
     //$('#mainPanel').append(panelTemplate);
     // $.get("/notebook/getSteps/" + notebookId, function(steps, status){
@@ -82,6 +34,12 @@ $(document).ready(function() {
         $('.qsreloadresult[data-stepid="' + data.stepId + '"]').append(data.message);
     });
 
+    socket.on('reloadProgress', function(data) {
+        //console.log(data.scriptProgress);
+        $('.qsreloadresult[data-stepid="' + data.stepId + '"]').html('');
+        var script = data.scriptProgress.join('<br>').replace(/\n/g, '<br>');
+        $('.qsreloadresult[data-stepid="' + data.stepId + '"]').html(script);
+    });
     //socket.emit('subscribe', 'roomOne');
 
 
@@ -114,7 +72,9 @@ $(document).ready(function() {
     });
 
     $(document).on("click", ".qsreload", function() {
-        reloadApp($(this).data('stepid'), $(this).data('notebookid'));
+        var stepId = $(this).data('stepid');
+        $('.qsreloadresult[data-stepid="' + stepId + '"]').val('');
+        reloadApp(stepId, $(this).data('notebookid'));
     });
 
     $(document).on("click", ".qsreloadall", function() {
@@ -138,7 +98,7 @@ $(document).ready(function() {
     function getSteps() {
         socket.emit('getSteps', notebookId, function(stepshtml, steps) {
             allSteps = steps;
-            console.log(steps)
+//            console.log(steps)
             $('#mainPanel').empty();
             $('#mainPanel').append(stepshtml);
             var qsMainPanel = $('.qsMainPanel');
@@ -169,7 +129,7 @@ $(document).ready(function() {
     function deleteStep(stepId, notebookId) {
         socket.emit('deleteStep', stepId, notebookId, function(result) {
             var panels = $('.qsMainPanel');
-
+            console.log(result);
             for (var i = 0; i < panels.length; i++) {
                 if (stepId == $(panels[i]).data('stepid')) {
                     $(panels[i]).remove();
@@ -195,12 +155,23 @@ $(document).ready(function() {
     }
 
     function reloadApp(stepId, notebookId) {
-        $('.qsreloadresult[data-stepid="' + data.stepId + '"]').text('');
-        socket.emit('reloadApp', stepId, notebookId);
+        //$('.qsreloadresult[data-stepid="' + data.stepId + '"]').text('');
+       buttonsToggle( stepId, true );
+       var progress = $('.qsmsg[data-stepid="' + stepId + '"]');
+        $(progress).text('Reloading ...');
+        $(progress).css('display', 'inline-block');
+
+        socket.emit('reloadApp', stepId, notebookId, function(result) {
+            $(progress).text('Reloaded!');
+            $(progress).fadeOut("slow");
+            buttonsToggle( stepId, false );
+        });
     }
 
     function reloadFromApp(stepId, notebookId) {
-        socket.emit('reloadFromApp', stepId, notebookId);
+        socket.emit('reloadFromApp', stepId, notebookId, function(result) {
+            console.log(result)
+        });
     }
     
     function validateScript(stepId) {

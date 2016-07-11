@@ -3,6 +3,7 @@ var bodyParser = require('body-parser');
 var app = express();
 var async = require('async');
 var swig = require('swig');
+var qsocks = require('qsocks');
 var uuid = require('node-uuid');
 var config = require('./config/config');
 var mongoose = require('mongoose');
@@ -56,12 +57,6 @@ var notebookModel = mongoose.model('notebookModel', {
 
 const appPrefix = 'zzz_Notebook_';
 
-// var parent = new notebookModel({ name: 'test',createdAt: new Date(),   
-//   steps: [{ name: 'Matt', createdAt: new Date(), script: 's1' }, { name: 'Matt1', createdAt: new Date(), script: 's2' }] 
-// });
-// parent.save(function(err, doc) {
-//   console.log(doc);
-// });
 
 app.get('/test1', function(req, res) {
 
@@ -274,27 +269,12 @@ io.on('connection', function(client) {
     io.sockets.in(room).emit('message', data);
   });
 
-  client.on('reloadApp', function(stepId, notebookId) {
-    reloadApp( notebookId, stepId, function(result) {
+  client.on('reloadApp', function(stepId, notebookId, callback) {
+    reloadApp( stepId, notebookId, function(result) {
+      callback(result)
     });
   });
   
-  function reloadApp(notebookId, stepId, callback) {
-    var count = 0;
-    var intervalObject = setInterval(function() {
-      count++;
-      io.sockets.in(stepId).emit('reloadmessage', {
-        stepId: stepId,
-        message: '<br>' + count + ' --> ' + stepId
-      });
-      
-      if (count == 5) {
-        clearInterval(intervalObject);
-        callback();
-      }
-    }, 1000);    
-  }
-
   client.on('reloadFromApp', function(stepId, notebookId) {
     notebookModel.findById(notebookId, function(err, doc) {
       var steps = doc.steps;
@@ -351,6 +331,7 @@ io.on('connection', function(client) {
   });
 
   client.on('addStep', function(notebookId, lastStep, callback) {
+
     var at = Date.now();
     var appName = appPrefix + uuid.v4();
     notebookModel.findOne({
@@ -374,19 +355,54 @@ io.on('connection', function(client) {
             name: step.name,
             script: step.script
           }]
-        });
+        }); 
 
-        callback(template);
+        var config = {
+            appName: ''
+        };
+            var appName = step.name;
+            var mainGlobal;
+            qsocks.Connect(config).then(function(global) {
+                mainGlobal = global;
+                return global;
+            }).then(function(global) {
+                return global.createApp(appName);
+            }).then(function(app) {
+                console.log(app);
+                return mainGlobal.openDoc(app.qAppId);
+            }).then(function(app) {
+                return app.getScript();
+            }).then(function(script) {
+              callback(template);
+            });                
       });
     });
   });
 
   client.on('deleteStep', function(stepId, notebookId, callback) {
     notebookModel.findById(notebookId, function(err, doc) {
+      var step = doc.steps.id(stepId);
+      var appName = step.name;
       var step = doc.steps.id(stepId).remove();
 
       doc.save(function(err, d) {
-        callback('ok');
+
+        var configQSocks = {
+            appName: ''
+        };
+            
+            var mainGlobal;
+            qsocks.Connect(configQSocks).then(function(global) {
+                mainGlobal = global;
+                console.log('connected')
+                return global;
+            }).then(function(global) {
+                return mainGlobal.deleteApp(appName + '.qvf');
+            }).then(function(result) {
+                callback(result)                
+            });
+
+
       });
     });
   });
@@ -415,21 +431,118 @@ io.on('connection', function(client) {
 
 });
 
+  function reloadApp(stepId, notebookId, callback) {
+    console.log(notebookId);
+    console.log(stepId)
+    notebookModel.findById(notebookId, function(err, doc) {
+      var step = doc.steps.id(stepId);
+      var appName = step.name;
+      
+
+        var configQSocks = {
+            appName: ''
+        };
+                
+        var mainGlobal, mainApp;
+        return qsocks.Connect(configQSocks).then(function(global) {
+            mainGlobal = global;                
+            return global;
+        }).then(function(global) {              
+            return mainGlobal.openDoc(appName + '.qvf');                 
+        }).then(function(app) {
+          console.log(appName)
+            //return app.doReload();
+                var reloaded = null; // when the app is finished to reload
+                app.doReload().then(function() {
+                    reloaded = true;                    
+                })
+
+               var persistentProgress = '';
+               var scriptProgress = [] ;
+
+                // mainGlobal.getProgress(0).then(function(msg) {
+                //   console.log(msg)
+                // })
+
+                var progress = setInterval(function() {
+
+                    if (reloaded != true) {
+                        mainGlobal.getProgress(0).then(function(msg) {
+                          //console.log( JSON.stringify( msg ))
+
+                          if(msg.qPersistentProgress) {
+                            console.log(msg.qPersistentProgress)
+                            if(msg.qPersistentProgress.indexOf('Lines fetched') > -1 ) {
+                              if(scriptProgress[scriptProgress.length -1].indexOf('<<') == -1) {
+                                scriptProgress[scriptProgress.length -1] = msg.qPersistentProgress;
+                              } else {
+                                scriptProgress.push(msg.qPersistentProgress);  
+                              }
+                            } else {
+                              scriptProgress.push(msg.qPersistentProgress);
+                            }
+                            io.sockets.in(stepId).emit('reloadProgress', {stepId: stepId, scriptProgress: scriptProgress});
+                            if(msg.qTransientProgress) {
+                              console.log(msg.qTransientProgress)
+                              scriptProgress.push(msg.qPersistentProgress);
+                              io.sockets.in(stepId).emit('reloadProgress', {stepId: stepId, scriptProgress: scriptProgress});
+                            }
+                          }
+
+                          if(msg.qTransientProgress.length > 1) {
+                            console.log(msg.qTransientProgress)
+                            if( scriptProgress[scriptProgress.length -1] != msg.qTransientProgress);
+                            scriptProgress[scriptProgress.length -1] = msg.qTransientProgress
+                            io.sockets.in(stepId).emit('reloadProgress', {stepId: stepId, scriptProgress: scriptProgress});                            
+                          }
+                        })
+                    } else {       
+                      mainGlobal.getProgress(0).then(function(msg) {   
+                        console.log( JSON.stringify( msg ))
+                        if(scriptProgress.length > 0) {
+                          scriptProgress[scriptProgress.length -1] = msg.qPersistentProgress;
+                        } else {
+                          scriptProgress.push(msg.qPersistentProgress);
+                        }
+                        scriptProgress.push('Reload fnished!');              
+                        io.sockets.in(stepId).emit('reloadProgress', {stepId: stepId, scriptProgress: scriptProgress});
+                        clearInterval(progress);
+                        callback(true);   
+                        mainGlobal.connection.close();
+                        console.log('Reloaded');              
+                      })       
+                    }
+                }, config.main.getProgressInterval);
+
+
+        }).catch( err => {       
+          console.log(err)     
+          callback(err)
+        });
+
+
+
+        
+    });
+
+
+
+
+    // var count = 0;
+    // var intervalObject = setInterval(function() {
+    //   count++;
+    //   io.sockets.in(stepId).emit('reloadmessage', {
+    //     stepId: stepId,
+    //     message: '<br>' + count + ' --> ' + stepId
+    //   });
+      
+    //   if (count == 5) {
+    //     clearInterval(intervalObject);
+    //     callback();
+    //   }
+    // }, 1000);    
+  }
 
 server.listen(process.env.PORT, process.env.IP, function() {
   console.log('Example app listening on port ' + process.env.PORT);
 });
-/*
-const qsocks = require('qsocks');
-
-
-  qsocks.Connect().then(function(global) {
-    return global;
-  }).then( function(global) {
-    return global.getDocList()
-  }).then(function(docList) {
-   docList.forEach(function(doc) {
-      console.log(doc)
-    });
-  });
-*/

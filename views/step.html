@@ -23,10 +23,10 @@
                     <button data-original-title="Delete step" data-placement="bottom" data-toggle="tooltip" type="button" class="btn btn-default qsremove qstooltip" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">
                         <span class="glyphicon glyphicon-trash "></span>
                     </button>
+                    <label class="checkbox-inline"><input type="checkbox" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}">Skip</label>
                     <a data-toggle="collapse" data-target="#{{ step.name }}" class="collapsed" href="#{{ step.name }}">
                         <span class="qsapp" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}"  >{{ step.name }}</span>
-                    </a>
-                    <label class="checkbox-inline"><input type="checkbox" data-notebookid="{{ notebookId }}" data-stepid="{{ step.id }}>Skip from reload all</label>
+                    </a>                    
                 </div>
                 <div class="col-lg-5" style="text-align: right">
                     <div>
