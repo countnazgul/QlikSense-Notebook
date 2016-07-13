@@ -174,15 +174,38 @@ $(document).ready(function () {
         });
     }
 
+    var marks = [];
     function validateScript(stepId) {
-        var script = $("#scripttext_" + stepId).siblings();
-        script = $(script)[0].CodeMirror;
-        script = script.getValue();
+        var test = $("#scripttext_" + stepId);
+        var editor = $("#scripttext_" + stepId).siblings();
+        editor = $(editor)[0].CodeMirror;
+        var script = editor.getValue();
+
+        var m = editor.getAllMarks(); 
+        for(var i = 0; i <m.length; i++) {
+            m[i].clear();
+        }
+
+        //$('#test').removeClass('marked')
         buttonsToggle(stepId, true);
         socket.emit('validateScript', script, function (validationResult) {
             console.log(validationResult);
             progressMsg(stepId, validationResult.length + ' error(s)', true);
             buttonsToggle(stepId, false);
+
+            for (var i = 0; i < validationResult.length; i++) {
+                editor.getDoc().markText({
+                    line: validationResult[i].qLineInTab,
+                    ch: validationResult[i].qColInLine
+                }, {
+                        line: validationResult[i].qLineInTab,
+                        ch: validationResult[i].qErrLen + validationResult[i].qColInLine
+                    }, {
+                        //css: "background-color : red"
+                        className: 'marked'
+                    });
+            }
+
         });
     }
 
@@ -199,6 +222,17 @@ $(document).ready(function () {
 
             setTimeout(function () {
                 edit.refresh();
+
+                // edit.getDoc().markText({
+                //     line: 0,
+                //     ch: 3
+                // }, {
+                //         line: 0,
+                //         ch: 10
+                //     }, {
+                //         css: "background-color : red"
+                //     });
+
             }, 1);
 
             $('#' + id).addClass('cm');
@@ -207,6 +241,16 @@ $(document).ready(function () {
 
         }
     }
+
+    // function getlineNumberofChar(data, index) {
+    //     var perLine = data.split('\n');
+    //     var total_length = 0;
+    //     for (i = 0; i < perLine.length; i++) {
+    //         total_length += perLine[i].length;
+    //         if (total_length >= index)
+    //             return i + 1;
+    //     }
+    // }
 
     function buttonsToggle(stepId, disable) {
         var buttons = $('.qstooltip[data-stepid="' + stepId + '"]');
