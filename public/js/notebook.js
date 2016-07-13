@@ -75,9 +75,16 @@ $(document).ready(function () {
         var script = $("#scripttext_" + stepId).siblings();
         script = $(script)[0].CodeMirror;
         script = script.getValue();
-        saveStepLocal($(this).data('stepid'), $(this).data('notebookid'), script);
-
+        saveStep($(this).data('stepid'), $(this).data('notebookid'), script, false);
     });
+
+    $(document).on("click", ".qssaveengine", function () {
+        var stepId = $(this).data('stepid');
+        var script = $("#scripttext_" + stepId).siblings();
+        script = $(script)[0].CodeMirror;
+        script = script.getValue();
+        saveStep($(this).data('stepid'), $(this).data('notebookid'), script, true);
+    });    
 
     $(document).on("click", ".qsreload", function () {
         var stepId = $(this).data('stepid');
@@ -148,12 +155,12 @@ $(document).ready(function () {
         });
     }
 
-    function saveStepLocal(stepId, notebookId, script) {
+    function saveStep(stepId, notebookId, script, engineSave) {
         buttonsToggle(stepId, true);
         progressMsg(stepId, 'Saving ...', false);
 
-        socket.emit('saveStepLocal', stepId, notebookId, script, function (result) {
-            progressMsg(stepId, 'Saved local', true);
+        socket.emit('saveStep', stepId, notebookId, script, engineSave, function (result) {            
+            progressMsg(stepId, 'Saved', true);
             buttonsToggle(stepId, false);
         });
     }

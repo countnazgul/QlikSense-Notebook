@@ -407,15 +407,39 @@ io.on('connection', function (client) {
     });
   });
 
-  client.on('saveStepLocal', function (stepId, notebookId, script, callback) {
+  client.on('saveStep', function (stepId, notebookId, script, engineSave, callback) {
 
     notebookModel.findById(notebookId, function (err, doc) {
-      var step = doc.steps.id(stepId);
+      var step = doc.steps.id(stepId);      
       step.script = script;
       step.lastLocalSaveAt = new Date();
 
       doc.save(function (err, d) {
-        callback(step);
+        if (engineSave == false) {
+          callback(step);
+        } else {
+
+          var configQSocks = {
+            appName: ''
+          };
+
+          var mainGlobal, mainApp;
+          qsocks.Connect(configQSocks).then(function (global) {
+            mainGlobal = global;
+            return global;
+          }).then(function (global) {
+            return mainGlobal.openDoc(step.name + '.qvf');
+          }).then(function (app) {
+            mainApp = app;
+            return app.setScript(script);
+          }).then(function (script) {
+            return mainApp.doSave();
+          }).then(function (saveResult) {
+            mainGlobal.connection.close();
+            callback(saveResult);
+          });
+
+        }
       });
     });
 
