@@ -89,7 +89,12 @@ $(document).ready(function () {
     $(document).on("click", ".qsreload", function () {
         var stepId = $(this).data('stepid');
         $('.qsreloadresult[data-stepid="' + stepId + '"]').val('');
-        reloadApp(stepId, $(this).data('notebookid'));
+
+        var editor = $("#scripttext_" + stepId).siblings();
+        editor = $(editor)[0].CodeMirror;
+        var script = editor.getValue();
+
+        reloadApp(stepId, $(this).data('notebookid'), script);
     });
 
     $(document).on("click", ".qsreloadall", function () {
@@ -165,11 +170,11 @@ $(document).ready(function () {
         });
     }
 
-    function reloadApp(stepId, notebookId) {
+    function reloadApp(stepId, notebookId, script) {
         buttonsToggle(stepId, true);
         progressMsg(stepId, 'Reloading ...', false);
 
-        socket.emit('reloadApp', stepId, notebookId, function (result) {
+        socket.emit('reloadApp', stepId, notebookId, script, function (result) {
             progressMsg(stepId, 'Reloaded', true);
             buttonsToggle(stepId, false);
         });

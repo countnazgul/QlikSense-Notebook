@@ -269,8 +269,8 @@ io.on('connection', function (client) {
     io.sockets.in(room).emit('message', data);
   });
 
-  client.on('reloadApp', function (stepId, notebookId, callback) {
-    reloadApp(stepId, notebookId, function (result) {
+  client.on('reloadApp', function (stepId, notebookId, script, callback) {
+    reloadApp(stepId, notebookId, script, function (result) {
       callback(result)
     });
   });
@@ -410,7 +410,7 @@ io.on('connection', function (client) {
   client.on('saveStep', function (stepId, notebookId, script, engineSave, callback) {
 
     notebookModel.findById(notebookId, function (err, doc) {
-      var step = doc.steps.id(stepId);      
+      var step = doc.steps.id(stepId);
       step.script = script;
       step.lastLocalSaveAt = new Date();
 
@@ -473,7 +473,7 @@ io.on('connection', function (client) {
 
 });
 
-function reloadApp(stepId, notebookId, callback) {
+function reloadApp(stepId, notebookId, script, callback) {
   console.log(notebookId);
   console.log(stepId)
   notebookModel.findById(notebookId, function (err, doc) {
@@ -492,10 +492,13 @@ function reloadApp(stepId, notebookId, callback) {
     }).then(function (global) {
       return mainGlobal.openDoc(appName + '.qvf');
     }).then(function (app) {
+      mainApp = app;
+      return app.setScript(script);
+    }).then(function (script) {
       console.log(appName)
       //return app.doReload();
       var reloaded = null; // when the app is finished to reload
-      app.doReload().then(function () {
+      mainApp.doReload().then(function () {
         reloaded = true;
       })
 
@@ -546,12 +549,18 @@ function reloadApp(stepId, notebookId, callback) {
             } else {
               scriptProgress.push(msg.qPersistentProgress);
             }
-            scriptProgress.push('Reload fnished!');
+            console.log('Reloaded');
+            scriptProgress.push('Reload fnished. \n Savnig ...');
             io.sockets.in(stepId).emit('reloadProgress', { stepId: stepId, scriptProgress: scriptProgress });
             clearInterval(progress);
-            callback(true);
-            mainGlobal.connection.close();
-            console.log('Reloaded');
+
+            mainApp.doSave().then(function () {
+              scriptProgress.push('Saved');
+              io.sockets.in(stepId).emit('reloadProgress', { stepId: stepId, scriptProgress: scriptProgress });
+              callback(true);
+              mainGlobal.connection.close();
+              console.log('Saved');
+            })
           })
         }
       }, config.main.getProgressInterval);
