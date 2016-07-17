@@ -65,16 +65,30 @@ $(document).ready(function () {
         deleteAllApps();
     });
 
-
+    var dStepId = {stepId: '', notebookid: ''};
     $(document).on("click", ".qsremove", function () {
-        deleteStep($(this).data('stepid'), $(this).data('notebookid'));
+        dStepId.stepId = $(this).data('stepid');
+        dStepId.notebookid = $(this).data('notebookid');       
+        $('#myModal').modal();
+    });
+
+    $(document).on("click", ".qsDeleteModal", function () {
+        //console.log(dStepId)
+        deleteStep(dStepId.stepId, dStepId.notebookid);
+        dStepId = {stepId: '', notebookid: ''};
+        $('#myModal').modal('hide');
     });
 
     $(document).on("click", ".qssave", function () {
         var stepId = $(this).data('stepid');
-        var script = $("#scripttext_" + stepId).siblings();
-        script = $(script)[0].CodeMirror;
-        script = script.getValue();
+        var script = '';
+        try {
+            script = $("#scripttext_" + stepId).siblings();
+            script = $(script)[0].CodeMirror;
+            script = script.getValue();
+        } catch (e) {
+            script = $("#scripttext_" + stepId).val();
+        }
         saveStep($(this).data('stepid'), $(this).data('notebookid'), script, false);
     });
 
@@ -84,7 +98,7 @@ $(document).ready(function () {
         script = $(script)[0].CodeMirror;
         script = script.getValue();
         saveStep($(this).data('stepid'), $(this).data('notebookid'), script, true);
-    });    
+    });
 
     $(document).on("click", ".qsreload", function () {
         var stepId = $(this).data('stepid');
@@ -164,7 +178,7 @@ $(document).ready(function () {
         buttonsToggle(stepId, true);
         progressMsg(stepId, 'Saving ...', false);
 
-        socket.emit('saveStep', stepId, notebookId, script, engineSave, function (result) {            
+        socket.emit('saveStep', stepId, notebookId, script, engineSave, function (result) {
             progressMsg(stepId, 'Saved', true);
             buttonsToggle(stepId, false);
         });
@@ -193,8 +207,8 @@ $(document).ready(function () {
         editor = $(editor)[0].CodeMirror;
         var script = editor.getValue();
 
-        var m = editor.getAllMarks(); 
-        for(var i = 0; i <m.length; i++) {
+        var m = editor.getAllMarks();
+        for (var i = 0; i < m.length; i++) {
             m[i].clear();
         }
 
@@ -232,37 +246,15 @@ $(document).ready(function () {
                 tabMode: "indent"
             });
 
+            //edit.setSize(500, 300);
+
             setTimeout(function () {
                 edit.refresh();
-
-                // edit.getDoc().markText({
-                //     line: 0,
-                //     ch: 3
-                // }, {
-                //         line: 0,
-                //         ch: 10
-                //     }, {
-                //         css: "background-color : red"
-                //     });
-
             }, 1);
 
             $('#' + id).addClass('cm');
-
-            //edit.setOption('mode', 'sql');
-
         }
     }
-
-    // function getlineNumberofChar(data, index) {
-    //     var perLine = data.split('\n');
-    //     var total_length = 0;
-    //     for (i = 0; i < perLine.length; i++) {
-    //         total_length += perLine[i].length;
-    //         if (total_length >= index)
-    //             return i + 1;
-    //     }
-    // }
 
     function buttonsToggle(stepId, disable) {
         var buttons = $('.qstooltip[data-stepid="' + stepId + '"]');

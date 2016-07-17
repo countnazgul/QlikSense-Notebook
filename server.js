@@ -411,11 +411,16 @@ io.on('connection', function (client) {
 
     notebookModel.findById(notebookId, function (err, doc) {
       var step = doc.steps.id(stepId);
-      step.script = script;
-      step.lastLocalSaveAt = new Date();
+      step.script = script;      
+
+      if(engineSave == true) {
+        step.lastEngineSaveAt = new Date();
+      } else {
+        step.lastLocalSaveAt = new Date();
+      }
 
       doc.save(function (err, d) {
-        if (engineSave == false) {
+        if (engineSave == false) {          
           callback(step);
         } else {
 
@@ -436,7 +441,7 @@ io.on('connection', function (client) {
             return mainApp.doSave();
           }).then(function (saveResult) {
             mainGlobal.connection.close();
-            callback(saveResult);
+            callback(step);
           });
 
         }
