@@ -1,9 +1,17 @@
 {
     "name": "QlikSense-Notebook",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Jupyter like notebook for Qlik Sense",
     "author": "Stefan Stoichev <stefan.stoichev@gmail.com>",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/countnazgul/QlikSense-Notebook.git"
+    },
+    "bugs": {
+        "url": "https://github.com/countnazgul/QlikSense-Notebook/issues"
+    },
+    "homepage": "https://github.com/countnazgul/QlikSense-Notebook",
     "dependencies": {
         "async": "1.5.x",
         "express": "4.13.x",
@@ -15,7 +23,7 @@
         "consolidate": "0.14.x",
         "request": "2.x.x",
         "node-uuid": "1.4.x",
-        "mongoose" : "4.5.x",
-        "socket.io":"1.4.8"
+        "mongoose": "4.5.x",
+        "socket.io": "1.4.8"
     }
 }
