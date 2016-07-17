@@ -20,7 +20,7 @@ $(document).ready(function () {
     // $.get("/notebook/getSteps/" + notebookId, function(steps, status){
     //     console.log(steps);
     // });
-
+ 
     var socket = io();
     //var socket = io.connect('https:///countnazgul-countnazgul.c9.io');
 
@@ -33,6 +33,7 @@ $(document).ready(function () {
     });
 
     socket.on('connect', function (data) {
+         $('#wait_lightbox').hide();
         socket.emit('join', 'Hello World from client');
         getSteps();
     });
@@ -55,15 +56,24 @@ $(document).ready(function () {
     $.get("/notebookDetails/" + notebookId, function (notebookName, status) {
         $('#notebookName').text(notebookName);
     });
-
+ 
     //var sessionApps = [];
     // $('#createNewApp').on('click', function () {
     //     createApp();        
     // }) 
 
+  socket.on('disconnect', function(){
+      $('#wait_lightbox').show(0);
+  });
+
+    
     $('#deleteAll').on('click', function () {
         deleteAllApps();
     });
+
+    $(document).on("click", ".qsReloadPage", function () {
+        location.reload(true);
+    })    
 
     var dStepId = {stepId: '', notebookid: ''};
     $(document).on("click", ".qsremove", function () {
