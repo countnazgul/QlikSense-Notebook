@@ -276,6 +276,7 @@ io.on('connection', function (client) {
   });
 
   client.on('reloadFromApp', function (stepId, notebookId) {
+    //console.log(notebookId)
     notebookModel.findById(notebookId, function (err, doc) {
       var steps = doc.steps;
       var found = false;
@@ -285,17 +286,18 @@ io.on('connection', function (client) {
 
         if (step._id == stepId) {
           found = true;
-          stepsToProcess.push(step._id);
+          //console.log(step._id)
+          stepsToProcess.push({ step: step._id, script: step.script });
           // reloadApp( notebookId, step._id, function(result) {
-          //   callback();
+             callback();
           // });
-        }
-        else {
+        } else {
           if (found == true) {
             // reloadApp( notebookId, step._id, function(result) {
-            //   callback();
+              // callback();
             // });
-            stepsToProcess.push(step._id);
+            stepsToProcess.push({ step: step._id, script: step.script });
+               callback();
           }
           else {
             callback();
@@ -303,16 +305,19 @@ io.on('connection', function (client) {
         }
         //callback();
       }, function (err) {
-
-      });
-
-      async.each(stepsToProcess, function (step, callback) {
-        reloadApp(notebookId, step, function (result) {
-          callback();
+          
+        async.eachSeries(stepsToProcess, function (step, callback1) {
+          console.log('reloading: ' + step.step)
+          reloadApp(step.step, notebookId, step.script, function (result) {
+            callback1();
+          });
+        }, function (err) {
+          console.log('all reloaded');
         });
-      }, function (err) {
 
       });
+
+
 
     });
   });
@@ -435,6 +440,7 @@ io.on('connection', function (client) {
           }).then(function (global) {
             return mainGlobal.openDoc(step.name + '.qvf');
           }).then(function (app) {
+            //console.log(app)
             mainApp = app;
             return app.setScript(script);
           }).then(function (script) {
@@ -479,19 +485,20 @@ io.on('connection', function (client) {
 });
 
 function reloadApp(stepId, notebookId, script, callback) {
-  console.log(notebookId);
-  console.log(stepId)
+  //console.log(notebookId);
+  console.log('R -->' + stepId)
   notebookModel.findById(notebookId, function (err, doc) {
+    //console.log(doc);
     var step = doc.steps.id(stepId);
     var appName = step.name;
-
+    //console.log(appName)
 
     var configQSocks = {
       appName: ''
     };
 
     var mainGlobal, mainApp;
-    return qsocks.Connect(configQSocks).then(function (global) {
+    qsocks.Connect(configQSocks).then(function (global) {
       mainGlobal = global;
       return global;
     }).then(function (global) {
@@ -500,11 +507,13 @@ function reloadApp(stepId, notebookId, script, callback) {
       mainApp = app;
       return app.setScript(script);
     }).then(function (script) {
-      console.log(appName)
+      //console.log(appName)
       //return app.doReload();
       var reloaded = null; // when the app is finished to reload
       mainApp.doReload().then(function () {
+        //mainGlobal.connection.close();
         reloaded = true;
+        callback(true);
       })
 
       var persistentProgress = '';
@@ -548,7 +557,7 @@ function reloadApp(stepId, notebookId, script, callback) {
           })
         } else {
           mainGlobal.getProgress(0).then(function (msg) {
-            console.log(JSON.stringify(msg))
+            console.log( stepId + ' --> ' + JSON.stringify(msg))
             if (scriptProgress.length > 0) {
               scriptProgress[scriptProgress.length - 1] = msg.qPersistentProgress;
             } else {
@@ -559,12 +568,12 @@ function reloadApp(stepId, notebookId, script, callback) {
             io.sockets.in(stepId).emit('reloadProgress', { stepId: stepId, scriptProgress: scriptProgress });
             clearInterval(progress);
 
-            mainApp.doSave().then(function () {
+            return mainApp.doSave().then(function () {
               scriptProgress.push('Saved');
-              io.sockets.in(stepId).emit('reloadProgress', { stepId: stepId, scriptProgress: scriptProgress });
-              callback(true);
+              io.sockets.in(stepId).emit('reloadProgress', { stepId: stepId, scriptProgress: scriptProgress });              
               mainGlobal.connection.close();
               console.log('Saved');
+              callback(true);              
             })
           })
         }
@@ -572,8 +581,9 @@ function reloadApp(stepId, notebookId, script, callback) {
 
 
     }).catch(err => {
-      console.log(err)
-      callback(err)
+      mainGlobal.connection.close();
+      console.log(stepId + ' <--> ' + err)
+      //callback(err)
     });
 
 
